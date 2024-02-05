@@ -12,7 +12,11 @@ const getTime  = incrementalCache(async () =>
  });
 
 const time = await getTime()
-const reval = revalidateStale()
+if (Astro.locals.runtime?.waitUntil) {
+  Astro.locals.runtime.waitUntil(revalidateStale())
+} else {
+  const revalidationPromise = revalidateStale()
+}
 
 ---
 <Layout title="Welcome to Astro.">

@@ -73,6 +73,7 @@ export async function revalidateStale() {
     await caches.delete(buildCacheKey(`${key}-warp`));
   }
   toRevalidate.clear();
+  return null
 }
 
 function parseCacheEntry(entry: string) {
@@ -88,11 +89,13 @@ export function incrementalCache<T extends Callback>(cb: T, options: {
     const now = Date.now();
     const caches = await cacheApi("__incremental-cache");
     const res = await caches.match(buildCacheKey(options.key));
+    const maxAge = typeof options.swr === 'number'
+      ? options.swr + options.ttl : 31_536_000;
     if (!res) {
       const result = await cb(...args);
       console.log('MISS', result)
-      const maxAge = typeof options.swr === 'number'
-        ? options.swr + options.ttl : 31_536_000;
+      // const maxAge = typeof options.swr === 'number'
+      //   ? options.swr + options.ttl : 31_536_000;
       const cacheEntry = stringifyCacheEntry(
         options.key,
         result,
@@ -110,11 +113,15 @@ export function incrementalCache<T extends Callback>(cb: T, options: {
         }));
       return result;
     }
-    const cachedRes = parseCacheEntry(await res.text())
-    console.log('CACHED', cachedRes)
-    if ((now - cachedRes.lastModified) / 1000 >= cachedRes.ttl) {
+    let cachedRes = parseCacheEntry(await res.text())
+    // console.log('CACHED', cachedRes)
+    if (((now - cachedRes.lastModified) / 1000 >= cachedRes.ttl) ||
+      cachedRes.ttl !== options.ttl || cachedRes.maxAge !== maxAge
+    ) {
       console.log((now - cachedRes.lastModified) / 1000, cachedRes.ttl)
       console.log('STALE', cachedRes.value)
+      cachedRes.ttl = options.ttl;
+      cachedRes.maxAge = maxAge;
       toRevalidate.set(options.key, { entry: cachedRes, cb });
       return cachedRes.value;
       // const result = await cb(...args);

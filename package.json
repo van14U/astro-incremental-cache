@@ -7,12 +7,13 @@
     "bindings": "cf-bindings-proxy",
     "start": "astro dev",
     "build": "astro check && astro build",
-    "preview": "astro preview",
+    "preview": "wrangler pages dev ./dist",
     "astro": "astro"
   },
   "dependencies": {
     "@astrojs/check": "^0.4.1",
     "@astrojs/cloudflare": "^9.0.0",
+    "@epic-web/cachified": "^4.0.0",
     "astro": "^4.3.2",
     "cf-bindings-proxy": "^0.7.1",
     "typescript": "^5.3.3"
