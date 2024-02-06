@@ -19,7 +19,7 @@ if (Astro.locals.runtime?.waitUntil) {
   const revalidationPromise = __runBackgroundTasks()
 }
 
-const location = await fetch('https://vercel-geo-delta.vercel.app/api/geo').then((res) => res.json());
+const location = {}
 
 ---
 <Layout title="Welcome to Astro.">
