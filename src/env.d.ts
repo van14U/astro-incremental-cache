@@ -1,7 +1,12 @@
 /// <reference types="astro/client" />
 
+// import type { Cache } from "@epic-web/cachified";
+
+type CachifiedCache = import("@epic-web/cachified").Cache;
+type KVNamespace = import("@cloudflare/workers-types").KVNamespace;
 type ENV = {
-  // replace `MY_KV` with your KV namespace
+  KV_CACHE: KVNamespace;
+  CACHIFIED_KV_CACHE: CachifiedCache;
 };
 
 // Depending on your adapter mode
@@ -9,5 +14,5 @@ type ENV = {
 // use `DirectoryRuntime<ENV>` for directory runtime mode
 type Runtime = import("@astrojs/cloudflare").AdvancedRuntime<ENV>;
 declare namespace App {
-  interface Locals extends Runtime {}
+  interface Locals extends Runtime { }
 }

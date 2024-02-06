@@ -1,10 +1,10 @@
 ---
-import Layout from '../layouts/Layout.astro';
-import { incrementalCache, __runBackgroundTasks } from '../lib/cache/caches';
+import Layout from '../../layouts/Layout.astro';
+import { incrementalCache, __runBackgroundTasks } from '../../lib/cache/kv';
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
-const getTime  = incrementalCache(async () =>
+const getTime = incrementalCache(async () =>
    sleep(3000).then(() => new Date().toLocaleTimeString()), {
     key: 'hello',
     ttl: 20,
@@ -20,7 +20,6 @@ if (Astro.locals.runtime?.waitUntil) {
 }
 
 const location = await fetch('https://vercel-geo-delta.vercel.app/api/geo').then((res) => res.json());
-
 
 ---
 <Layout title="Welcome to Astro.">

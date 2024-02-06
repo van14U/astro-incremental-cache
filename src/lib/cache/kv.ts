@@ -1,4 +1,6 @@
-import { cacheApi } from "cf-bindings-proxy";
+import { binding } from "cf-bindings-proxy";
+
+const kv = binding<KVNamespace>("KV_CACHE");
 
 type CacheEntry = {
   key: string;
@@ -10,13 +12,14 @@ type CacheEntry = {
 
 type Callback = (...args: any[]) => Promise<any>;
 
-const toRevalidate = new Map<string, { entry: CacheEntry; promise: Promise<any>}>();
+const toRevalidate = new Map<
+  string,
+  { entry: CacheEntry; promise: Promise<any> }
+>();
 
 function buildCacheKey(key: string) {
   return `https://INCREMENTAL_CACHE.local/entry/${key}` as const;
 }
-
-const CACHE_NAME = "__incremental-cache";
 
 function stringifyCacheEntry(
   key: string,
@@ -34,24 +37,15 @@ function stringifyCacheEntry(
 }
 
 async function revalidateStale() {
-  const cache = await cacheApi(CACHE_NAME);
   console.log("REVALIDATING STALE");
   for (const [key, { entry, promise }] of toRevalidate.entries()) {
     console.log("REVALIDATING", key);
-    const result = await promise
+    const result = await promise;
     console.log("REVALIDATED", result);
     const maxAge = entry.maxAge;
     const cacheEntry = stringifyCacheEntry(key, result, entry.ttl, maxAge);
     console.log("PUT", result);
-    await cache.put(
-      key,
-      // @ts-ignore
-      new Response(cacheEntry, {
-        headers: new Headers({
-          "Cache-Control": `s-maxage=${maxAge}`,
-        }),
-      }),
-    );
+    await kv.put(key, cacheEntry, { expirationTtl: maxAge });
   }
   toRevalidate.clear();
 }
@@ -68,7 +62,7 @@ function addTask(task: Task) {
   tasks.push(task);
 }
 
-// used by cache.put
+// used by kv.put
 export async function __runBackgroundTasks() {
   for (const task of tasks) {
     try {
@@ -93,9 +87,8 @@ export function incrementalCache<T extends Callback>(
 ): T {
   return (async (...args: any[]): Promise<any> => {
     const now = Date.now();
-    const cache = await cacheApi(CACHE_NAME);
     const cacheKey = buildCacheKey(options.key);
-    const res = await cache.match(cacheKey);
+    const res = await kv.get(cacheKey);
     const maxAge =
       typeof options.swr === "number" ? options.swr + options.ttl : 31_536_000;
     if (!res) {
@@ -109,20 +102,10 @@ export function incrementalCache<T extends Callback>(
       );
       console.log("PUT", result);
 
-      addTask(
-        cache.put(
-          cacheKey,
-          // @ts-ignore
-          new Response(cacheEntry, {
-            headers: new Headers({
-              "Cache-Control": `s-maxage=${maxAge}`,
-            }),
-          }),
-        ),
-      );
+      addTask(kv.put(cacheKey, cacheEntry));
       return result;
     }
-    let cachedRes = parseCacheEntry(await res.text());
+    let cachedRes = parseCacheEntry(res);
     if (
       (now - cachedRes.lastModified) / 1000 >= cachedRes.ttl ||
       cachedRes.ttl !== options.ttl ||
@@ -141,18 +124,7 @@ export function incrementalCache<T extends Callback>(
           maxAge,
         );
         console.log("PUT", result);
-
-        addTask(
-          cache.put(
-            cacheKey,
-            // @ts-ignore
-            new Response(cacheEntry, {
-              headers: new Headers({
-                "Cache-Control": `s-maxage=${maxAge}`,
-              }),
-            }),
-          ),
-        );
+        addTask(kv.put(cacheKey, cacheEntry));
         return result;
       }
 
@@ -167,6 +139,5 @@ export function incrementalCache<T extends Callback>(
 }
 
 export async function invalidateCache(key: string) {
-  const cache = await cacheApi(CACHE_NAME);
-  return cache.delete(buildCacheKey(key));
+  return kv.delete(buildCacheKey(key));
 }
