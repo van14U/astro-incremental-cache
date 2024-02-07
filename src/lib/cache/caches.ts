@@ -1,3 +1,4 @@
+import type { ExecutionContext } from "@cloudflare/workers-types";
 import { cacheApi } from "cf-bindings-proxy";
 
 type CacheEntry = {
@@ -10,11 +11,16 @@ type CacheEntry = {
 
 type Callback = (...args: any[]) => Promise<any>;
 
-const toRevalidate = new Map<string, { entry: CacheEntry; promise: Promise<any>}>();
+const toRevalidate = new Map<
+  string,
+  { entry: CacheEntry; promise: Promise<any> }
+>();
 
 function buildCacheKey(key: string) {
   return `https://INCREMENTAL_CACHE.local/entry/${key}` as const;
 }
+
+const count = { value: 0 };
 
 const CACHE_NAME = "__incremental-cache";
 
@@ -33,28 +39,28 @@ function stringifyCacheEntry(
   } satisfies CacheEntry);
 }
 
-async function revalidateStale() {
-  const cache = await cacheApi(CACHE_NAME);
-  console.log("REVALIDATING STALE");
-  for (const [key, { entry, promise }] of toRevalidate.entries()) {
-    console.log("REVALIDATING", key);
-    const result = await promise
-    console.log("REVALIDATED", result);
-    const maxAge = entry.maxAge;
-    const cacheEntry = stringifyCacheEntry(key, result, entry.ttl, maxAge);
-    console.log("PUT", result);
-    await cache.put(
-      key,
-      // @ts-ignore
-      new Response(cacheEntry, {
-        headers: new Headers({
-          "Cache-Control": `s-maxage=${maxAge}`,
-        }),
-      }),
-    );
-  }
-  toRevalidate.clear();
-}
+// async function revalidateStale() {
+//   const cache = await cacheApi(CACHE_NAME);
+//   console.log("STALE ENTRIES", toRevalidate.size);
+//   for (const [key, { entry, promise }] of toRevalidate.entries()) {
+//     console.log("REVALIDATING", key);
+//     const result = await promise;
+//     console.log("REVALIDATED", result);
+//     const maxAge = entry.maxAge;
+//     const cacheEntry = stringifyCacheEntry(key, result, entry.ttl, maxAge);
+//     console.log("PUT", result);
+//     await cache.put(
+//       key,
+//       // @ts-ignore
+//       new Response(cacheEntry, {
+//         headers: new Headers({
+//           "Cache-Control": `s-maxage=${maxAge}`,
+//         }),
+//       }),
+//     );
+//   }
+//   toRevalidate.clear();
+// }
 
 function parseCacheEntry(entry: string) {
   return JSON.parse(entry) as CacheEntry;
@@ -70,6 +76,7 @@ function addTask(task: Task) {
 
 // used by cache.put
 export async function __runBackgroundTasks() {
+  console.log("__runBackgroundTasks", tasks.length);
   for (const task of tasks) {
     try {
       await task;
@@ -80,7 +87,6 @@ export async function __runBackgroundTasks() {
   }
   // clear tasks
   tasks.splice(0, tasks.length);
-  await revalidateStale();
 }
 
 export function incrementalCache<T extends Callback>(
@@ -120,6 +126,7 @@ export function incrementalCache<T extends Callback>(
           }),
         ),
       );
+      executionContext?.waitUntil?.(__runBackgroundTasks());
       return result;
     }
     let cachedRes = parseCacheEntry(await res.text());
@@ -130,20 +137,18 @@ export function incrementalCache<T extends Callback>(
     ) {
       console.log((now - cachedRes.lastModified) / 1000, cachedRes.ttl);
       console.log("STALE", cachedRes.value);
-
-      if ((now - cachedRes.lastModified) / 1000 >= cachedRes.maxAge) {
-        console.log("STALE MAX AGE", cachedRes.value);
-        const result = await cb(...args);
-        const cacheEntry = stringifyCacheEntry(
-          cacheKey,
-          result,
-          options.ttl,
-          maxAge,
-        );
-        console.log("PUT", result);
-
-        addTask(
-          cache.put(
+      // cachedRes.ttl = options.ttl;
+      // cachedRes.maxAge = maxAge;
+      addTask(
+        cb(...args).then(async (result) => {
+          console.log("REVALIDATED", result);
+          const cacheEntry = stringifyCacheEntry(
+            cacheKey,
+            result,
+            options.ttl,
+            maxAge,
+          );
+          await cache.put(
             cacheKey,
             // @ts-ignore
             new Response(cacheEntry, {
@@ -151,14 +156,11 @@ export function incrementalCache<T extends Callback>(
                 "Cache-Control": `s-maxage=${maxAge}`,
               }),
             }),
-          ),
-        );
-        return result;
-      }
-
-      cachedRes.ttl = options.ttl;
-      cachedRes.maxAge = maxAge;
-      toRevalidate.set(cacheKey, { entry: cachedRes, promise: cb(...args) });
+          );
+          console.log("PUT", result);
+        }),
+      );
+      executionContext?.waitUntil?.(__runBackgroundTasks());
       return cachedRes.value;
     }
     console.log("HIT", cachedRes.value);

@@ -11,13 +11,8 @@ const getTime = incrementalCache(async () =>
  });
 
 const start = Date.now()
-const time = await getTime()
+const time = getTime()
 const duration = Date.now() - start
-if (Astro.locals.runtime?.waitUntil) {
-  Astro.locals.runtime.waitUntil(__runBackgroundTasks())
-} else {
-  const revalidationPromise = __runBackgroundTasks()
-}
 
 const location = {}
 

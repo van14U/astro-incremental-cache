@@ -36,19 +36,19 @@ function stringifyCacheEntry(
   } satisfies CacheEntry);
 }
 
-async function revalidateStale() {
-  console.log("REVALIDATING STALE");
-  for (const [key, { entry, promise }] of toRevalidate.entries()) {
-    console.log("REVALIDATING", key);
-    const result = await promise;
-    console.log("REVALIDATED", result);
-    const maxAge = entry.maxAge;
-    const cacheEntry = stringifyCacheEntry(key, result, entry.ttl, maxAge);
-    console.log("PUT", result);
-    await kv.put(key, cacheEntry, { expirationTtl: maxAge });
-  }
-  toRevalidate.clear();
-}
+// async function revalidateStale() {
+//   console.log("STALE ENTRIES", toRevalidate.size);
+//   for (const [key, { entry, promise }] of toRevalidate.entries()) {
+//     console.log("REVALIDATING", key);
+//     const result = await promise;
+//     console.log("REVALIDATED", result);
+//     const maxAge = entry.maxAge;
+//     const cacheEntry = stringifyCacheEntry(key, result, entry.ttl, maxAge);
+//     console.log("PUT", result);
+//     await kv.put(key, cacheEntry, { expirationTtl: maxAge });
+//   }
+//   toRevalidate.clear();
+// }
 
 function parseCacheEntry(entry: string) {
   return JSON.parse(entry) as CacheEntry;
@@ -64,6 +64,7 @@ function addTask(task: Task) {
 
 // used by kv.put
 export async function __runBackgroundTasks() {
+  console.log("__runBackgroundTasks", tasks.length);
   for (const task of tasks) {
     try {
       await task;
@@ -74,7 +75,6 @@ export async function __runBackgroundTasks() {
   }
   // clear tasks
   tasks.splice(0, tasks.length);
-  await revalidateStale();
 }
 
 export function incrementalCache<T extends Callback>(
@@ -102,7 +102,8 @@ export function incrementalCache<T extends Callback>(
       );
       console.log("PUT", result);
 
-      addTask(kv.put(cacheKey, cacheEntry));
+      addTask(kv.put(cacheKey, cacheEntry, { expirationTtl: maxAge }));
+      executionContext?.waitUntil?.(__runBackgroundTasks());
       return result;
     }
     let cachedRes = parseCacheEntry(res);
@@ -113,24 +114,27 @@ export function incrementalCache<T extends Callback>(
     ) {
       console.log((now - cachedRes.lastModified) / 1000, cachedRes.ttl);
       console.log("STALE", cachedRes.value);
-
-      if ((now - cachedRes.lastModified) / 1000 >= cachedRes.maxAge) {
-        console.log("STALE MAX AGE", cachedRes.value);
-        const result = await cb(...args);
-        const cacheEntry = stringifyCacheEntry(
-          cacheKey,
-          result,
-          options.ttl,
-          maxAge,
-        );
-        console.log("PUT", result);
-        addTask(kv.put(cacheKey, cacheEntry));
-        return result;
-      }
-
-      cachedRes.ttl = options.ttl;
-      cachedRes.maxAge = maxAge;
-      toRevalidate.set(cacheKey, { entry: cachedRes, promise: cb(...args) });
+      // cachedRes.ttl = options.ttl;
+      // cachedRes.maxAge = maxAge;
+      addTask(
+        cb(...args).then(async (result) => {
+          console.log("REVALIDATED", result);
+          const cacheEntry = stringifyCacheEntry(
+            cacheKey,
+            result,
+            options.ttl,
+            maxAge,
+          );
+          await kv.put(
+            cacheKey,
+            cacheEntry,
+            { expirationTtl: maxAge },
+          );
+          console.log("PUT", result);
+        }),
+      );
+      // toRevalidate.set(cacheKey, { entry: cachedRes, promise: cb(...args) });
+      executionContext?.waitUntil?.(__runBackgroundTasks());
       return cachedRes.value;
     }
     console.log("HIT", cachedRes.value);
