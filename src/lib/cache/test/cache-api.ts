@@ -74,7 +74,7 @@ class CacheApiCache extends BaseCache {
         route: this.distributeMetadata.route,
       }).catch(() => {
         /* ignore */
-        console.error("Failed to distribute cache api entry", key);
+        console.error("Failed to PUT distribute cache api entry", key);
       });
     }
   }
@@ -106,7 +106,7 @@ class CacheApiCache extends BaseCache {
         route: this.distributeMetadata.route,
       }).catch(() => {
         /* ignore */
-        console.error("Failed to distribute cache api entry", key);
+        console.error("Failed to DELETE distribute cache api entry", key);
       });
     }
   }
