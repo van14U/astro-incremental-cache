@@ -1,6 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
-import { incrementalCache, __runBackgroundTasks } from '../../lib/cache/kv';
+import { incrementalCache } from '../../lib/cache/test';
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 

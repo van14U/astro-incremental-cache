@@ -1,7 +1,6 @@
 ---
 import Layout from '../layouts/Layout.astro';
-import { incrementalCache, __runBackgroundTasks } from '../lib/cache/caches';
-// const {} await getBindingsProxy();
+import { incrementalCache } from '../lib/cache/test';
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
@@ -9,26 +8,19 @@ const getTime  = incrementalCache(async () =>
    sleep(3000).then(() => new Date().toLocaleTimeString()), {
     key: 'hello',
     ttl: 20,
+    forceCacheAPI: true,
  });
 const getTime2  = incrementalCache(async () =>
    sleep(1000).then(() => new Date().toLocaleTimeString()), {
     key: 'hello+world',
     ttl: 20,
+    forceCacheAPI: true,
  });
 
 const start = Date.now()
 const time = getTime()
-// .then((time) => {
-//   Astro.locals.runtime?.waitUntil(__runBackgroundTasks())
-//   return time
-// })
 const time2 = getTime2()
 const duration = Date.now() - start
-// if (Astro.locals.runtime?.waitUntil) {
-//   Astro.locals.runtime.waitUntil(__runBackgroundTasks())
-// } else {
-//   const revalidationPromise = __runBackgroundTasks()
-// }
 
 const location = {}
 
