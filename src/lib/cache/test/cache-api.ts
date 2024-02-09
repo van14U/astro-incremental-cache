@@ -64,6 +64,7 @@ class CacheApiCache extends BaseCache {
       /* ignore */
       console.error("Failed to put cache api entry", key);
     });
+    console.log("local PUT successful", key);
     if (this.distributeMetadata.enabled) {
       await this.distribute({
         action: "PUT",
@@ -99,6 +100,7 @@ class CacheApiCache extends BaseCache {
       /* ignore */
       console.error("Failed to delete cache api entry", key);
     });
+    console.log("local DELETE successful", key);
     if (this.distributeMetadata.enabled) {
       await this.distribute({
         action: "DELETE",
