@@ -9,11 +9,8 @@ function createCacheInstance(
 ): BaseCache {
   // @ts-ignore
   if (process.env.KV_CACHE && !forceCacheAPI) {
-    console.log("Using KV cache");
     return new KVCache();
   }
-  console.log("Using Cache API cache");
-  console.log("metadata", metadata);
   return new CacheApiCache(metadata);
 }
 
@@ -53,7 +50,6 @@ export function incrementalCache<T extends Callback>(
       // @ts-ignore
       process.env.PORT ?? process.env.NODE_ENV === "production" ? 8788 : 4321
     }`;
-  console.log("baseUrl", baseUrl);
   const metadata = {
     enabled: distributeCacheApi,
     route: `${baseUrl}/api/cache-update`,

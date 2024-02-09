@@ -62,7 +62,7 @@ abstract class BaseCache {
       }
       return value as T;
     }
-
+    console.log("MISS");
     const newValue = await getValue();
     getWaitUntil()?.(this.put(cacheKey, newValue, ttl, swr));
     return newValue;

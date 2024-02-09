@@ -64,7 +64,7 @@ class CacheApiCache extends BaseCache {
       /* ignore */
       console.error("Failed to put cache api entry", key);
     });
-    console.log("local PUT successful", key);
+    console.log("LOCAL PUT SUCESS", key);
     if (this.distributeMetadata.enabled) {
       await this.distribute({
         action: "PUT",
@@ -81,7 +81,6 @@ class CacheApiCache extends BaseCache {
   }
 
   private async distribute<T>(options: DistributeOptions<T>) {
-    console.log("distribute options", options);
     return fetch("https://vercel-geo-delta.vercel.app/api/distribute", {
       method: "POST",
       body: JSON.stringify(options),
@@ -100,7 +99,7 @@ class CacheApiCache extends BaseCache {
       /* ignore */
       console.error("Failed to delete cache api entry", key);
     });
-    console.log("local DELETE successful", key);
+    console.log("LOCAL DELETE SUCESS", key);
     if (this.distributeMetadata.enabled) {
       await this.distribute({
         action: "DELETE",
