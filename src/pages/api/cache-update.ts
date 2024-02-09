@@ -4,8 +4,8 @@ import type { DistributeOptions } from "../../lib/cache/test/cache-api";
 
 export const POST: APIRoute = async (ctx) => {
   try {
-    console.log("cache-update", ctx.request.url);
     const body = (await ctx.request.json()) as DistributeOptions<unknown>;
+    console.log({ key: body.key });
     const cacheAdaptor = getCacheAPIWebhookHandler();
     if (body.action === "PUT") {
       await cacheAdaptor.put(body.key, body.value, body.ttl, body.swr);
