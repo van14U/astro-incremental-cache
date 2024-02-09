@@ -45,7 +45,7 @@ export function incrementalCache<T extends Callback>(
   // @ts-ignore
   let baseUrl =
     // @ts-ignore
-    process.env.CF_PAGES_URL ??
+    process.env.PRODUCTION_URL ??
     `http://localhost:${
       // @ts-ignore
       process.env.PORT ?? process.env.NODE_ENV === "production" ? 8788 : 4321
