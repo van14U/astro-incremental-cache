@@ -7,13 +7,13 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 const getTime  = incrementalCache(async () =>
    sleep(3000).then(() => new Date().toLocaleTimeString()), {
     key: 'hello',
-    ttl: 20,
+    ttl: 120,
     forceCacheAPI: true,
  });
 const getTime2  = incrementalCache(async () =>
    sleep(1000).then(() => new Date().toLocaleTimeString()), {
     key: 'hello+world',
-    ttl: 20,
+    ttl: 120,
     forceCacheAPI: true,
  });
 
