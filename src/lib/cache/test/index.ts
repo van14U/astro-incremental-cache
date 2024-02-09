@@ -46,11 +46,6 @@ export function incrementalCache<T extends Callback>(
     throw new Error("ttl must be less or equal to 1 year");
   }
   // @ts-ignore
-  console.log("process.env.CF_PAGES_URL", process.env.CF_PAGES_URL);
-  // @ts-ignore
-  console.log("process.env.PORT", process.env.PORT);
-  // @ts-ignore
-  console.log("process.env.NODE_ENV", process.env.NODE_ENV);
   let baseUrl =
     // @ts-ignore
     process.env.CF_PAGES_URL ??
@@ -58,9 +53,6 @@ export function incrementalCache<T extends Callback>(
       // @ts-ignore
       process.env.PORT ?? process.env.NODE_ENV === "production" ? 8788 : 4321
     }`;
-  if (baseUrl.endsWith("/")) {
-    baseUrl = baseUrl.slice(0, -1);
-  }
   console.log("baseUrl", baseUrl);
   const metadata = {
     enabled: distributeCacheApi,

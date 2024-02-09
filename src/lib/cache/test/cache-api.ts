@@ -45,7 +45,7 @@ class CacheApiCache extends BaseCache {
     return value ? parseCacheEntry(value) : null;
   }
 
-  // Cloudflare Cache API doesn't have global replication, (no tiered caching)
+  // Cloudflare Cache API doesn't have global replication (no tiered caching)
   public async put<T>(
     key: string,
     value: T,
@@ -72,8 +72,7 @@ class CacheApiCache extends BaseCache {
         swr,
         ttl,
         route: this.distributeMetadata.route,
-      }).catch((e) => {
-        console.log("Failed to distribute cache api entry", e);
+      }).catch(() => {
         /* ignore */
         console.error("Failed to distribute cache api entry", key);
       });
@@ -85,12 +84,11 @@ class CacheApiCache extends BaseCache {
     return fetch("https://vercel-geo-delta.vercel.app/api/distribute", {
       method: "POST",
       body: JSON.stringify(options),
-    }).then(async (response) => {
-      console.log('distribute response', response);
-      const json = await response.json();
-      console.log("distribute response json", json);
+    }).then((response) => {
       if (!response.ok) {
-        throw new Error();
+        throw new Error(
+          `Failed to distribute cache api entry: ${response.status}`,
+        );
       }
     });
   }
