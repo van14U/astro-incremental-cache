@@ -69,3 +69,8 @@ export function incrementalCache<T extends Callback>(
     return value;
   }) as T;
 }
+
+export async function invalidate(key: string) {
+  const cacheAdaptor = createCacheInstance({ enabled: false }, false);
+  return cacheAdaptor.invalidate(key);
+}

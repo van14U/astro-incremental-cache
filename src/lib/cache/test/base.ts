@@ -15,6 +15,16 @@ abstract class BaseCache {
   ): Promise<void>;
   public abstract delete(key: string): Promise<void>;
 
+  public async invalidate(key: string): Promise<boolean> {
+    const cacheKey = buildCacheKey(key);
+    try {
+      await this.delete(cacheKey);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
   public async cache<T>(
     getValue: () => Promise<T>,
     { key, ttl, swr }: CacheEntryOptions,
