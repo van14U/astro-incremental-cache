@@ -1,0 +1,27 @@
+---
+import { incrementalCache } from '@/lib/cache/test';
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
+
+const getTime = incrementalCache(async () =>
+   sleep(150).then(() => new Date().toLocaleTimeString()), {
+    key: 'time:kv',
+    ttl: 120,
+    strategy: 'global',
+ });
+
+const start = Date.now()
+const time = await getTime()
+const duration = Date.now() - start
+---
+<div class="dark:bg-black dark:text-white h-screen">
+  <main class="mx-auto max-w-6xl w-full">
+  <div class="text-center">
+    <p class="p-4">Cached value on KV</p>
+    <div class="flex flex-col">
+      Value: {time} (took {duration}ms)
+    </div>
+    </div>
+  </main>
+</div>
+

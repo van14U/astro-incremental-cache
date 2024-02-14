@@ -8,7 +8,7 @@ const globalThisExecutionContext = globalThis as {
 
 export const onRequest: MiddlewareHandler = (context, next) => {
   globalThisExecutionContext.executionContext ??= {
-    waitUntil: context.locals.runtime.waitUntil,
+    waitUntil: context.locals.runtime?.waitUntil,
   };
   return next();
 };

@@ -5,10 +5,10 @@ import type { Callback } from "./utils";
 
 function createCacheInstance(
   metadata: DistributeMetadata,
-  forceCacheAPI: boolean,
+  strategy: "local" | "global",
 ): BaseCache {
   // @ts-ignore
-  if (process.env.KV_CACHE && !forceCacheAPI) {
+  if (process.env.KV_CACHE && strategy === "global") {
     return new KVCache();
   }
   return new CacheApiCache(metadata);
@@ -26,13 +26,13 @@ export function incrementalCache<T extends Callback>(
     key,
     ttl,
     swr,
-    forceCacheAPI = false,
+    strategy = "local",
     distributeCacheApi = true,
   }: {
     key: string;
     ttl: number;
     swr?: number;
-    forceCacheAPI?: boolean;
+    strategy?: "local" | "global";
     distributeCacheApi?: boolean;
   },
 ): T {
@@ -58,7 +58,7 @@ export function incrementalCache<T extends Callback>(
   if (ttl + inferSwr > ONE_YEAR_IN_SECONDS) {
     throw new Error("ttl + swr must be less or equal to 1 year");
   }
-  const cacheAdaptor = createCacheInstance(metadata, forceCacheAPI);
+  const cacheAdaptor = createCacheInstance(metadata, strategy);
   return (async (...args: any[]): Promise<any> => {
     const getValue = async () => cb(...args);
     const value = await cacheAdaptor.cache(getValue, {
@@ -70,7 +70,10 @@ export function incrementalCache<T extends Callback>(
   }) as T;
 }
 
-export async function invalidate(key: string) {
-  const cacheAdaptor = createCacheInstance({ enabled: false }, false);
+export async function invalidate(
+  key: string,
+  strategy: "local" | "global" = "local",
+) {
+  const cacheAdaptor = createCacheInstance({ enabled: false }, strategy);
   return cacheAdaptor.invalidate(key);
 }
